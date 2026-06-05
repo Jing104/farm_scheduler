@@ -1,6 +1,5 @@
 name: 自动编译 Windows 独立安装包部署总线
 
-# 触发器：当向主分支发起 push 提交或 Pull Request 时，瞬间激活此流水线
 on:
   push:
     branches: [ "main", "master" ]
@@ -9,35 +8,31 @@ on:
 
 jobs:
   build-windows-package:
-    # 租用 GitHub 官方提供的原生 Windows 最新稳定版虚拟机底座
     runs-on: windows-latest
 
     steps:
-    # 步骤一：拉取并解压当前仓库中的全量源码资产到虚拟机磁盘
+    # 步骤一：拉取全量源码资产到虚拟机磁盘
     - name: 检出仓库源码
       uses: actions/checkout@v4
 
-    # 步骤二：在虚拟机中初始化标准的国产化 Python 构建环境
+    # 步骤二：修复位置：修正为 GitHub 官方标准的 setup-python 插件路径，彻底斩断 404 崩溃
     - name: 初始化 Python 运行时环境
-      uses: actions/actions-setup-python@v5
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.11' # 与您本地开发对齐的物理版本
+        python-version: '3.11'
 
-    # 步骤三：升级包管理器并根据依赖资产明细账进行静默并网安装
-    - name: 挂载并依赖环境依赖
+    # 步骤三：静默并网安装第三方依赖依赖库
+    - name: 挂载并安装环境依赖
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    # 步骤四：执行 PyInstaller 核心多维二进制析构打包算子
-    # --onefile: 强行将全盘代码与动态库打包压缩为单个独立运行的 .exe
-    # --noconsole: 运行时自动隐藏密集的控制台黑窗口，仅弹出 PyQt6 数字化主界面
-    # --add-data: 强行将空初始数据库或静态图层塞进二进制包内（格式为 "源文件;打包后相对目录"）
+    # 步骤四：执行 PyInstaller 二进制静态编译打包
     - name: 执行 PyInstaller 静态编译打包
       run: |
         pyinstaller --onefile --noconsole --name="农机智能化调度台" main.py
 
-    # 步骤五：将编译产出的二进制文件上传到 GitHub Actions 的构建资产缓冲区中
+    # 步骤五：将编译产出的 .exe 上传到 Actions 的资产包缓冲区
     - name: 提权并归档部署包资产
       uses: actions/upload-artifact@v4
       with:
